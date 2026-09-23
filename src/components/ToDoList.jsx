@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ToDo from "./ToDo";
 import deleteBtn from "../assets/delete.svg";
+import axios from "axios";
 const ToDoList = () => {
   const [toDoList, setToDoList] = useState([]);
   const inputRef = useRef(null);
@@ -9,8 +10,12 @@ const ToDoList = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const responce = await fetch("https://dummyjson.com/todos?limit=5");
-        const data = await responce.json();
+        // const responce = await fetch("https://dummyjson.com/todos?limit=5");
+        // const data = await responce.json();
+        // setToDoList(data.todos);
+
+        const responce = await axios.get("https://dummyjson.com/todos?limit=5");
+        const data = responce.data;
         setToDoList(data.todos);
       } catch (error) {
         console.log(error);
@@ -19,42 +24,75 @@ const ToDoList = () => {
     fetchProducts();
   }, []);
 
-  const handleChange = (todoId) => {
-    const updatedTodos = toDoList.map((todo) =>
-      todoId === todo.id ? { ...todo, completed: !todo.completed } : todo,
-    );
-    setToDoList(updatedTodos);
+  const handleChange = async (todoId) => {
+    const todo = toDoList.find((item) => item.id === todoId);
+    try {
+      const responce = await axios.patch(
+        `https://dummyjson.com/todos/${todoId}`,
+        {
+          completed: !todo.completed,
+        },
+      );
+      const data = responce.data;
+      const updatedTodos = toDoList.map((todo) =>
+        todoId === todo.id ? data : todo,
+      );
+      setToDoList(updatedTodos);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const handleDelete = (todoId) => {
-    const filteredToDos = toDoList.filter((todo) => todoId !== todo.id);
-    setToDoList(filteredToDos);
+  const handleDelete = async (todoId) => {
+    try {
+      await axios.delete(`https://dummyjson.com/todos/${todoId}`);
+      const filteredToDos = toDoList.filter((todo) => todoId !== todo.id);
+      setToDoList(filteredToDos);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const addTodo = () => {
+  const addTodo = async () => {
     const todoValue = inputRef.current.value;
     if (todoValue === "") return;
-    const newTodo = {
-      completed: false,
-      id: Date.now(),
-      todo: todoValue,
-    };
-    const updatedTodos = [...toDoList, newTodo];
-    setToDoList(updatedTodos);
-    inputRef.current.value = "";
+    try {
+      const responce = await axios.post("https://dummyjson.com/todos/add", {
+        completed: false,
+        todo: todoValue,
+        userId: 2,
+      });
+      const data = responce.data;
+      const updatedTodos = [data, ...toDoList];
+      setToDoList(updatedTodos);
+      inputRef.current.value = "";
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const handleEdit = (todo) => {
     setSelectedTodo(todo);
   };
 
-  const saveTodo = () => {
+  const saveTodo = async () => {
     const newValue = editInputref.current.value;
-    const updatedTodos = toDoList.map((todo) =>
-      todo.id === selectedTodo.id ? { ...todo, todo: newValue  } : todo,
-    );
-    setToDoList(updatedTodos)
-    setSelectedTodo(null)
+    try {
+      const responce = await axios.patch(
+        `https://dummyjson.com/todos/${selectedTodo.id}`,
+        {
+          todo: newValue,
+        },
+      );
+      const data = responce.data;
+      const updatedTodos = toDoList.map((todo) =>
+        todo.id === selectedTodo.id ? data : todo,
+      );
+      setToDoList(updatedTodos);
+      setSelectedTodo(null);
+    } catch (error) {
+      console.log(error);
+    }
   };
   return (
     <>
